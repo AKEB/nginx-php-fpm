@@ -24,8 +24,7 @@ RUN mkdir -p /var/log/php/
 
 RUN chmod +x /root/geoip_update.sh \
   && chmod +x /etc/cron.weekly/geoip_update \
-  && /root/geoip_update.sh \
-  && update-ca-certificates -v
+  && /root/geoip_update.sh
 
 CMD ["/bin/bash", "-c", "nginx -g 'daemon on;';/run_on_start.sh;php-fpm${PHP_VERSION} -F"]
 
