@@ -1,6 +1,6 @@
 ARG PHP_VERSION="8.3"
 
-FROM akeb/php-fpm-${PHP_VERSION}:v1.0.0
+FROM akeb/php-fpm-${PHP_VERSION}:latest
 
 ENV PHP_VERSION=${PHP_VERSION}
 
