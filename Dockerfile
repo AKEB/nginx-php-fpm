@@ -19,6 +19,8 @@ COPY default.conf /etc/nginx/conf.d/default.conf
 COPY geoip_update.sh /etc/cron.weekly/geoip_update
 COPY geoip_update.sh /root/geoip_update.sh
 
+COPY GeoIP*.dat /usr/share/GeoIP/
+
 RUN mkdir -p /var/log/nginx/ && touch /var/log/nginx/error.log && touch /var/log/nginx/access.log
 RUN mkdir -p /var/log/php/
 
@@ -30,3 +32,4 @@ CMD ["/bin/bash", "-c", "nginx -g 'daemon on;';/run_on_start.sh;php-fpm${PHP_VER
 
 EXPOSE 80
 EXPOSE 443
+
