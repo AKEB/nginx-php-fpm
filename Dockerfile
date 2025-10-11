@@ -28,7 +28,7 @@ RUN chmod +x /root/geoip_update.sh \
   && chmod +x /etc/cron.weekly/geoip_update \
   && /root/geoip_update.sh
 
-CMD ["/bin/bash", "-c", "nginx -g 'daemon on;';/run_on_start.sh;php-fpm${PHP_VERSION} -F"]
+CMD ["/bin/bash", "-c", "cron;nginx -g 'daemon on;';/run_on_start.sh;php-fpm${PHP_VERSION} -F"]
 
 EXPOSE 80
 EXPOSE 443
