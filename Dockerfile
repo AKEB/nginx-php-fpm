@@ -20,6 +20,7 @@ COPY geoip_update.sh /etc/cron.weekly/geoip_update
 COPY geoip_update.sh /root/geoip_update.sh
 
 COPY GeoIP*.dat /usr/share/GeoIP/
+COPY logrotate/nginx /etc/logrotate.d/
 
 RUN mkdir -p /var/log/nginx/ && touch /var/log/nginx/error.log && touch /var/log/nginx/access.log
 RUN mkdir -p /var/log/php/
