@@ -33,3 +33,4 @@ CMD ["/bin/bash", "-c", "cron;nginx -g 'daemon on;';/run_on_start.sh;php-fpm${PH
 
 EXPOSE 80
 EXPOSE 443
+
