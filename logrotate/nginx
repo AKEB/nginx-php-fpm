@@ -1,12 +1,12 @@
 /var/log/nginx/*.log {
-  su www-data www-data
+  su root root
   daily
   missingok
   rotate 14
   compress
   delaycompress
   notifempty
-  create 0640 www-data www-data
+  create 0640 root root
   sharedscripts
   postrotate
     which nginx >/dev/null 2>&1 && nginx -s reopen || true
