@@ -1,36 +1,32 @@
 ARG PHP_VERSION="8.3"
 
-FROM akeb/php-fpm-${PHP_VERSION}:latest
+FROM akeb/php-fpm-${PHP_VERSION}:latest AS final
 
 ENV PHP_VERSION=${PHP_VERSION}
 
-RUN mkdir -p /app \
-  && mkdir -p /etc/cron.weekly \
-  && mkdir -p /usr/share/GeoIP
+COPY nginx.conf default.conf geoip_update.sh logrotate-nginx GeoIP.dat GeoIPCity.dat GeoIPOrg.dat /tmp/
 
 RUN apt-get update -y --allow-insecure-repositories \
-    && apt-get install -y --allow-unauthenticated \
-    nginx \
-    libnginx-mod-http-geoip \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get install -y --no-install-recommends --allow-unauthenticated \
+        nginx \
+        libnginx-mod-http-geoip \
+    && rm -rf /var/lib/apt/lists/* \
+    # Создаем директории
+    && mkdir -p /app /etc/cron.weekly /usr/share/GeoIP /var/log/nginx \
+    && touch /var/log/nginx/error.log /var/log/nginx/access.log \
+    && chmod -R 0777 /var/log/nginx/ \
+    # Размещаем файлы из /tmp
+    && mv /tmp/nginx.conf /etc/nginx/nginx.conf \
+    && mv /tmp/default.conf /etc/nginx/conf.d/default.conf \
+    && mv /tmp/geoip_update.sh /root/geoip_update.sh \
+    && mv /tmp/GeoIP.dat /tmp/GeoIPCity.dat /tmp/GeoIPOrg.dat /usr/share/GeoIP/ \
+    && mv /tmp/logrotate-nginx /etc/logrotate.d/nginx \
+    # Устанавливаем права на исполнение
+    && chmod +x /root/geoip_update.sh \
+    # Очищаем временные файлы
+    && rm -f /tmp/nginx.conf /tmp/default.conf /tmp/geoip_update.sh /tmp/logrotate-nginx /tmp/GeoIP.dat /tmp/GeoIPCity.dat /tmp/GeoIPOrg.dat
 
-COPY nginx.conf /etc/nginx/nginx.conf
-COPY default.conf /etc/nginx/conf.d/default.conf
-# COPY geoip_update.sh /etc/cron.weekly/geoip_update
-COPY geoip_update.sh /root/geoip_update.sh
-
-COPY GeoIP*.dat /usr/share/GeoIP/
-COPY logrotate/nginx /etc/logrotate.d/
-
-RUN mkdir -p /var/log/nginx/ && touch /var/log/nginx/error.log && touch /var/log/nginx/access.log
-RUN mkdir -p /var/log/php/
-
-RUN chmod +x /root/geoip_update.sh
-    # && /root/geoip_update.sh \
-    # && chmod +x /etc/cron.weekly/geoip_update
-
-    CMD ["/bin/bash", "-c", "cron;nginx -g 'daemon on;';/run_on_start.sh;php-fpm${PHP_VERSION} -F"]
+CMD ["/bin/bash", "-c", "cron;nginx -g 'daemon on;';/run_on_start.sh;php-fpm${PHP_VERSION} -F"]
 
 EXPOSE 80
 EXPOSE 443
-
