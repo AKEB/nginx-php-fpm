@@ -6,8 +6,12 @@ ENV PHP_VERSION=${PHP_VERSION}
 
 COPY nginx.conf default.conf geoip_update.sh logrotate-nginx GeoIP.dat GeoIPCity.dat GeoIPOrg.dat /tmp/
 
-RUN apt-get update -y --allow-insecure-repositories \
-    && apt-get install -y --no-install-recommends --allow-unauthenticated \
+RUN curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb \
+    && dpkg -i /tmp/debsuryorg-archive-keyring.deb \
+    && rm -f /tmp/debsuryorg-archive-keyring.deb \
+    && echo "deb [signed-by=/usr/share/keyrings/debsuryorg-archive-keyring.gpg] https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/sury-php.list \
+    && apt-get update -y \
+    && apt-get install -y --no-install-recommends \
         nginx \
         libnginx-mod-http-geoip \
     && rm -rf /var/lib/apt/lists/* \
