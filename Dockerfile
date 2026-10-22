@@ -4,7 +4,7 @@ FROM akeb/php-fpm-${PHP_VERSION}:latest AS final
 
 ENV PHP_VERSION=${PHP_VERSION}
 
-COPY nginx.conf default.conf geoip_update.sh logrotate-nginx GeoIP.dat GeoIPCity.dat GeoIPOrg.dat /tmp/
+COPY nginx.conf default.conf geoip_update.sh logrotate-nginx GeoLite2-Country.mmdb GeoLite2-City.mmdb GeoLite2-ASN.mmdb /tmp/
 
 RUN curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/debsuryorg-archive-keyring.deb \
     && dpkg -i /tmp/debsuryorg-archive-keyring.deb \
@@ -13,7 +13,7 @@ RUN curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/deb
     && apt-get update -y \
     && apt-get install -y --no-install-recommends \
         nginx \
-        libnginx-mod-http-geoip \
+        libnginx-mod-http-geoip2 \
     && rm -rf /var/lib/apt/lists/* \
     # Создаем директории
     && mkdir -p /app /etc/cron.weekly /usr/share/GeoIP /var/log/nginx \
@@ -23,12 +23,12 @@ RUN curl -sSLo /tmp/debsuryorg-archive-keyring.deb https://packages.sury.org/deb
     && mv /tmp/nginx.conf /etc/nginx/nginx.conf \
     && mv /tmp/default.conf /etc/nginx/conf.d/default.conf \
     && mv /tmp/geoip_update.sh /root/geoip_update.sh \
-    && mv /tmp/GeoIP.dat /tmp/GeoIPCity.dat /tmp/GeoIPOrg.dat /usr/share/GeoIP/ \
+    && mv /tmp/GeoLite2-Country.mmdb /tmp/GeoLite2-City.mmdb /tmp/GeoLite2-ASN.mmdb /usr/share/GeoIP/ \
     && mv /tmp/logrotate-nginx /etc/logrotate.d/nginx \
     # Устанавливаем права на исполнение
     && chmod +x /root/geoip_update.sh \
     # Очищаем временные файлы
-    && rm -f /tmp/nginx.conf /tmp/default.conf /tmp/geoip_update.sh /tmp/logrotate-nginx /tmp/GeoIP.dat /tmp/GeoIPCity.dat /tmp/GeoIPOrg.dat
+    && rm -f /tmp/nginx.conf /tmp/default.conf /tmp/geoip_update.sh /tmp/logrotate-nginx /tmp/GeoLite2-Country.mmdb /tmp/GeoLite2-City.mmdb /tmp/GeoLite2-ASN.mmdb
 
 CMD ["/bin/bash", "-c", "cron;nginx -g 'daemon on;';/run_on_start.sh;php-fpm${PHP_VERSION} -F"]
 
