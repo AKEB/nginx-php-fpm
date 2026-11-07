@@ -8,37 +8,70 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         version: ['7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+        target:
+          - platform: linux/amd64
+            suffix: amd64
+            runner: ubuntu-latest
+            qemu: false
+          - platform: linux/arm64/v8
+            suffix: arm64
+            runner: ubuntu-24.04-arm
+            qemu: false
+          - platform: linux/arm/v7
+            suffix: armv7
+            runner: ubuntu-latest
+            qemu: true
+    runs-on: ${{ matrix.target.runner }}
     steps:
-    - name: checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      id: buildx
-      uses: crazy-max/ghaction-docker-buildx@v1
-      with:
-        buildx-version: latest
-        qemu-version: latest
+      - uses: docker/setup-qemu-action@v3
+        if: matrix.target.qemu
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - uses: docker/setup-buildx-action@v3
 
-    - name: Build & Publish Docker Image
-      uses: docker/build-push-action@v6
-      env:
-        DOCKER_BUILD_RECORD_RETENTION_DAYS: 1
-      with:
-        push: true
-        platforms: linux/amd64,linux/arm/v7,linux/arm64/v8
-        tags: akeb/nginx-php-fpm-${{ matrix.version }}:latest, akeb/nginx-php-fpm-${{ matrix.version }}:${{github.ref_name}}
-        context: ./
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
-        build-args: |
-          PHP_VERSION=${{ matrix.version }}
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_RETENTION_DAYS: 1
+        with:
+          push: true
+          platforms: ${{ matrix.target.platform }}
+          tags: akeb/nginx-php-fpm-${{ matrix.version }}:${{ github.ref_name }}-${{ matrix.target.suffix }}
+          context: ./
+          cache-from: type=gha,scope=nginx-php-fpm-${{ matrix.version }}-${{ matrix.target.suffix }}
+          cache-to: type=gha,mode=max,scope=nginx-php-fpm-${{ matrix.version }}-${{ matrix.target.suffix }}
+          build-args: |
+            PHP_VERSION=${{ matrix.version }}
+
+  merge:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        version: ['7.1', '7.2', '7.3', '7.4', '8.0', '8.1', '8.2', '8.3', '8.4', '8.5']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publish multi-arch release manifest
+        run: |
+          docker buildx imagetools create \
+            -t akeb/nginx-php-fpm-${{ matrix.version }}:latest \
+            -t akeb/nginx-php-fpm-${{ matrix.version }}:${{ github.ref_name }} \
+            akeb/nginx-php-fpm-${{ matrix.version }}:${{ github.ref_name }}-amd64 \
+            akeb/nginx-php-fpm-${{ matrix.version }}:${{ github.ref_name }}-arm64 \
+            akeb/nginx-php-fpm-${{ matrix.version }}:${{ github.ref_name }}-armv7
